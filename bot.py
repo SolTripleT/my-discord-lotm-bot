@@ -14,7 +14,7 @@ import os
 import re
 import json
 from dotenv import load_dotenv
-
+import json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "lotm_beyonders.db")
 load_dotenv(os.path.join(BASE_DIR, "haha.env"))
@@ -27,32 +27,9 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-# ====================== LOTM PATHWAYS DATA ======================
-PATHWAYS = {
-    "Fool": ["Seer", "Clown", "Magician", "Faceless", "Marionettist", "Bizarro Sorcerer", "Scholar of Yore", "Miracle Invoker", "Attendant of Mysteries", "Fool"],
-    "Error": ["Marauder", "Swindler", "Cryptologist", "Prometheus", "Dream Stealer", "Parasite", "Mentor of Deceit", "Trojan Horse of Destiny", "Worm of Time", "Error"],
-    "Door": ["Apprentice", "Trickmaster", "Astrologer", "Scribe", "Traveler", "Secrets Sorcerer", "Wanderer", "Planeswalker", "Key of Stars", "Door"],
-    "Visionary": ["Spectator", "Telepathist", "Psychiatrist", "Hypnotist", "Dreamwalker", "Manipulator", "Dream Weaver", "Discerner", "Author", "Visionary"],
-    "Sun": ["Bard", "Light Suppliant", "Solar High Priest", "Notary", "Priest of Light", "Unshadowed", "Justice Mentor", "Lightseeker", "White Angel", "Sun"],
-    "Tyrant": ["Sailor", "Folk of Rage", "Seafarer", "Wind-blessed", "Ocean Songster", "Cataclysmic Interrer", "Sea King", "Calamity", "Thunder God", "Tyrant"],
-    "Hanged Man": ["Secrets Suppliant", "Listener", "Shadow Ascetic", "Rose Bishop", "Shepherd", "Black Knight", "Trinity Templar", "Profane Presbyter", "Dark Angel", "Hanged Man"],
-    "White Tower": ["Reader", "Student of Ratiocination", "Detective", "Polymath", "Mysticism Magister", "Prophet", "Cognizer", "Wisdom Angel", "Omniscient Eye", "White Tower"],
-    "Darkness": ["Sleepless", "Midnight Poet", "Nightmare", "Soul Assurer", "Spirit Warlock", "Nightwatcher", "Horror Bishop", "Servant of Concealment", "Knight of Misfortune", "Darkness"],
-    "Death": ["Corpse Collector", "Gravedigger", "Spirit Medium", "Spirit Guide", "Gatekeeper", "Undying", "Ferryman", "Death Consul", "Pale Emperor", "Death"],
-    "Twilight Giant": ["Warrior", "Pugilist", "Weapon Master", "Dawn Paladin", "Guardian", "Demon Hunter", "Silver Knight", "Glory", "Hand of God", "Twilight Giant"],
-    "Demoness": ["Assassin", "Instigator", "Witch", "Pleasure", "Affliction", "Despair", "Unaging", "Catastrophe", "Apocalypse", "Demoness"],
-    "Red Priest": ["Hunter", "Provoker", "Pyromaniac", "Conspirer", "Reaper", "Iron-blooded Knight", "War Bishop", "Weather Warlock", "Conqueror", "Red Priest"],
-    "Hermit": ["Mystery Pryer", "Melee Scholar", "Warlock", "Scrolls Professor", "Constellations Master", "Mysticologist", "Clairvoyant", "Sage", "Knowledge Emperor", "Hermit"],
-    "Paragon": ["Savant", "Archaeologist", "Appraiser", "Artisan", "Astronomer", "Alchemist", "Arcane Scholar", "Knowledge Magister", "Illuminator", "Paragon"],
-    "Wheel of Fortune": ["Monster", "Robot", "Lucky One", "Calamity Priest", "Winner", "Misfortune Mage", "Chaoswalker", "Soothsayer", "Snake of Mercury", "Wheel of Fortune"],
-    "Moon": ["Apothecary", "Beast Tamer", "Vampire", "Potions Professor", "Scarlet Scholar", "Shaman King", "High Summoner", "Life-Giver", "Beauty Goddess", "Moon"],
-    "Mother": ["Planter", "Doctor", "Harvest Priest", "Biologist", "Druid", "Classical Alchemist", "Pallbearer", "Desolate Matriarch", "Naturewalker", "Mother"],
-    "Chained": ["Prisoner", "Lunatic", "Werewolf", "Zombie", "Wraith", "Puppet", "Disciple of Silence", "Ancient Bane", "Abomination", "Chained"],
-    "Abyss": ["Criminal", "Unwinged Angel", "Serial Killer", "Devil", "Desire Apostle", "Demon", "Blatherer", "Bloody Archduke", "Filthy Monarch", "Abyss"],
-    "Black Emperor": ["Lawyer", "Barbarian", "Briber", "Baron of Corruption", "Mentor of Disorder", "Earl of the Fallen", "Frenzied Mage", "Duke of Entropy", "Prince of Abolition", "Black Emperor"],
-    "Justiciar": ["Arbiter", "Sheriff", "Interrogator", "Judge", "Disciplinary Paladin", "Imperative Mage", "Chaos Hunter", "Balancer", "Hand of Order", "Justiciar"]
-}
-
+# ====================== read LOTM pathway names from json ======================
+with open("pathways.json", "r", encoding="utf-8") as f:
+    pathways = json.load(f)
 # ====================== PATHWAY SYMBOL COLORS ======================
 PATHWAY_COLORS = {
     "Fool": 0xA9A9A9, "Error": 0xC0C0C0, "Door": 0x40E0D0, "Visionary": 0xE6E6FA,
@@ -223,9 +200,9 @@ async def send_announcement(guild: discord.Guild, content: str):
     await channel.send(content)
 
 def get_sequence_name(pathway: str, seq_num: int) -> str:
-    if pathway not in PATHWAYS or not (0 <= seq_num <= 9):
+    if pathway not in pathways or not (0 <= seq_num <= 9):
         return "Unknown"
-    return PATHWAYS[pathway][9 - seq_num]
+    return pathways[pathway][9 - seq_num]
 
 async def get_user_data(user_id: int, guild_id: int = 0):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -640,15 +617,15 @@ async def compare(interaction: discord.Interaction, user: discord.Member):
 @bot.tree.command(name="pathways", description="List all 22 pathways")
 async def pathways_cmd(interaction: discord.Interaction):
     if await check_blacklist(interaction): return
-    embed = discord.Embed(title="🃏 THE 22 PATHWAYS", color=0xf5c400)
+    embed = discord.Embed(title="🃏 THE 22 pathways", color=0xf5c400)
     embed.description = "Use `/choose_pathway` to select yours.\n\n"
-    for i, p in enumerate(PATHWAYS.keys(), 1):
+    for i, p in enumerate(pathways.keys(), 1):
         embed.description += f"`{i:02d}` **{p}**\n"
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="choose_pathway", description="Choose your Beyonder Pathway (once for normal users)")
 @app_commands.describe(pathway="Your chosen path")
-@app_commands.choices(pathway=[app_commands.Choice(name=p, value=p) for p in sorted(PATHWAYS.keys())])
+@app_commands.choices(pathway=[app_commands.Choice(name=p, value=p) for p in sorted(pathways.keys())])
 async def choose_pathway(interaction: discord.Interaction, pathway: str):
     if await check_blacklist(interaction): return
     data = await get_user_data(interaction.user.id, interaction.guild.id)
@@ -732,7 +709,7 @@ PATHWAY_DESCRIPTIONS = {
     "Black Emperor": "Disorder, corruption, and entropy", "Justiciar": "Order, law, and balance",
 }
 
-PATHWAY_LIST = list(PATHWAYS.keys())  # 22 pathways — fits in one Discord select (max 25)
+PATHWAY_LIST = list(pathways.keys())  # 22 pathways — fits in one Discord select (max 25)
 
 
 class PathwaySelect(discord.ui.Select):
@@ -1107,7 +1084,7 @@ async def setup_roles(interaction: discord.Interaction):
         return
     await interaction.response.defer()
     count = 0
-    for pathway in PATHWAYS:
+    for pathway in pathways:
         for seq in range(9, -1, -1):
             seq_name = get_sequence_name(pathway, seq)
             role_name = f"[{pathway}] True God — {seq_name}" if seq == 0 else f"[{pathway}] Seq {seq} — {seq_name}"
@@ -1357,7 +1334,7 @@ async def reset_all(interaction: discord.Interaction):
 
 @bot.tree.command(name="force_choose_pathway", description="Admin: Force a user to a new pathway")
 @app_commands.describe(user="Target user", pathway="New pathway")
-@app_commands.choices(pathway=[app_commands.Choice(name=p, value=p) for p in sorted(PATHWAYS.keys())])
+@app_commands.choices(pathway=[app_commands.Choice(name=p, value=p) for p in sorted(pathways.keys())])
 async def force_choose_pathway(interaction: discord.Interaction, user: discord.Member, pathway: str):
     if not await _require_bot_admin(interaction):
         return
