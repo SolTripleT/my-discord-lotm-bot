@@ -31,15 +31,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 with open("pathways.json", "r", encoding="utf-8") as f:
     pathways = json.load(f)
 # ====================== PATHWAY SYMBOL COLORS ======================
-PATHWAY_COLORS = {
-    "Fool": 0xA9A9A9, "Error": 0xC0C0C0, "Door": 0x40E0D0, "Visionary": 0xE6E6FA,
-    "Sun": 0xFFD700, "Tyrant": 0x00BFFF, "Hanged Man": 0x8B0000, "White Tower": 0xE6E6FA,
-    "Darkness": 0x4B0082, "Death": 0x2F4F4F, "Twilight Giant": 0xFF4500,
-    "Demoness": 0xC71585, "Red Priest": 0xB22222, "Hermit": 0x483D8B,
-    "Paragon": 0xB0C4DE, "Wheel of Fortune": 0xDAA520, "Moon": 0xC0C0C0,
-    "Mother": 0x228B22, "Chained": 0x8B0000, "Abyss": 0x000000,
-    "Black Emperor": 0x1C1C1C, "Justiciar": 0x4169E1,
-}
+
+with open("pathway_colors.json","r",encoding="utf-8") as f:
+    pathway_colors = json.load(f)
 
 # ====================== DATABASE ======================
 async def init_db():
@@ -264,7 +258,7 @@ async def get_or_create_role(guild: discord.Guild, name: str, pathway: str):
     if role:
         print(f"[ROLE] Found existing role '{name}' in {guild.name}")
         return role
-    color = PATHWAY_COLORS.get(pathway, 0xf5c400)
+    color = pathway_colors.get(pathway, 0xf5c400)
     print(f"[ROLE] Creating new role '{name}' in {guild.name}")
     try:
         r = await guild.create_role(
@@ -355,7 +349,7 @@ SEQ_ADVANCE_FLAVOUR = {
 async def announce_sequence_advance(guild: discord.Guild, user_id: int, pathway: str, new_seq: int):
     mention = f"<@{user_id}>"
     seq_name = get_sequence_name(pathway, new_seq)
-    color = PATHWAY_COLORS.get(pathway, 0xf5c400)
+    color = pathway_colors.get(pathway, 0xf5c400)
     flavour = SEQ_ADVANCE_FLAVOUR.get(new_seq, "Another step forward on the extraordinary path.")
 
     channel_id = await get_setting("announcement_channel")
@@ -512,7 +506,7 @@ async def profile(interaction: discord.Interaction, user: discord.Member = None)
     name   = get_sequence_name(data["pathway"], seq)
     xp     = data["xp"]
     needed = get_xp_required(seq)
-    color  = PATHWAY_COLORS.get(data["pathway"], 0xf5c400)
+    color  = pathway_colors.get(data["pathway"], 0xf5c400)
     eco    = get_economy(target.id, interaction.guild.id)
     wins   = eco.get("wins", 0)
     losses = eco.get("losses", 0)
@@ -547,7 +541,7 @@ async def sequence_info(interaction: discord.Interaction, sequence_number: int):
         return
     name   = get_sequence_name(data["pathway"], sequence_number)
     needed = get_xp_required(sequence_number)
-    color  = PATHWAY_COLORS.get(data["pathway"], 0xf5c400)
+    color  = pathway_colors.get(data["pathway"], 0xf5c400)
     emoji  = get_pathway_emoji(interaction.guild, data["pathway"])
     embed  = discord.Embed(
         title=f"{emoji} Sequence {sequence_number}: {name}",
@@ -653,7 +647,7 @@ async def choose_pathway(interaction: discord.Interaction, pathway: str):
         guild=interaction.guild
     )
 
-    color = PATHWAY_COLORS.get(pathway, 0xf5c400)
+    color = pathway_colors.get(pathway, 0xf5c400)
     embed = discord.Embed(
         title="🔥 YOU HAVE CHOSEN!",
         description=f"{interaction.user.mention} is now **Sequence 9 — {name}** of the **{pathway} Pathway**!",
@@ -786,7 +780,7 @@ async def handle_pathway_selection(interaction: discord.Interaction, pathway: st
         guild=guild
     )
 
-    color = PATHWAY_COLORS.get(pathway, 0xf5c400)
+    color = pathway_colors.get(pathway, 0xf5c400)
     emoji = get_pathway_emoji(guild, pathway) if guild else None
     emoji_str = str(emoji) if emoji else ""
 
@@ -1229,7 +1223,7 @@ async def xp_cmd(interaction: discord.Interaction, action: app_commands.Choice[s
             if channel_id:
                 channel = interaction.guild.get_channel(int(channel_id))
                 if channel:
-                    color = PATHWAY_COLORS.get(data["pathway"], 0xf5c400)
+                    color = pathway_colors.get(data["pathway"], 0xf5c400)
                     embed = discord.Embed(title="⚠️ SEQUENCE DEMOTION", color=color)
                     embed.description = (
                         f"{user.mention} has been demoted to **Sequence {new_seq} — {seq_name}**\n"
@@ -10367,7 +10361,7 @@ class PathwayAbilitySelectView(discord.ui.View):
         async def callback(interaction: discord.Interaction):
             pathway = interaction.data["values"][0]
             text = get_pathway_abilities_text(pathway)
-            color = PATHWAY_COLORS.get(pathway, 0x9B59B6)
+            color = pathway_colors.get(pathway, 0x9B59B6)
             embed = discord.Embed(description=text, color=color)
             embed.set_footer(text="Abilities for Seq 9, 8, 7, 6, and 5.")
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -10842,7 +10836,7 @@ async def penalize_combat_xp(loser: discord.Member, loser_seq: int, guild: disco
                     channel = guild.get_channel(int(channel_id))
                     if channel:
                         seq_name = get_sequence_name(pathway, new_seq)
-                        color = PATHWAY_COLORS.get(pathway, 0xf5c400)
+                        color = pathway_colors.get(pathway, 0xf5c400)
                         embed = discord.Embed(
                             title="💀 Sequence Demotion!",
                             description=(
