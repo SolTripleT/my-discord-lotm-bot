@@ -10,6 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot_instance import bot
+from logging_config import logger
 from config import DB_PATH, OWNER_ID, pathways, pathway_colors
 from utils import log_event, _require_bot_admin
 from roles import (
@@ -167,6 +168,7 @@ class AdminCommands(commands.Cog):
                 await role.delete(reason="LOTM bulk role deletion by admin")
                 deleted += 1
             except Exception:
+                logger.warning(f"[delete_all_roles] Could not delete role '{role.name}'", exc_info=True)
                 failed += 1
         msg = f"✅ Deleted **{deleted}** LOTM sequence roles."
         if failed:
@@ -224,7 +226,7 @@ class AdminCommands(commands.Cog):
         try:
             await channel.send(embed=embed)
         except Exception:
-            pass
+            logger.warning(f"[set_admin_log_channel] Could not post confirmation to #{channel.name}", exc_info=True)
 
     @app_commands.command(name="xp", description="Admin: Give, take, or wipe a user's XP")
     @app_commands.describe(action="Give, take, or wipe XP", user="Target user", amount="Amount of XP (not needed for Wipe)")

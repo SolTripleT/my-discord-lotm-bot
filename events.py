@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from aiohttp import web
 
 from bot_instance import bot
+from logging_config import logger
 from database import is_blacklisted, get_user_data, update_user, init_db
 from utils import parse_iso
 from xp import get_base_xp_gain, apply_xp_gain
@@ -31,7 +32,7 @@ async def start_http_server():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"✅ HTTP ping server started on port {port}")
+    logger.info(f"✅ HTTP ping server started on port {port}")
 
 
 @bot.event
@@ -72,16 +73,13 @@ async def on_message(message):
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     """Catch any unhandled slash command errors so they don't silently die."""
-    import traceback
-    traceback.print_exc()
+    logger.error(f"[Command error] /{interaction.command.name if interaction.command else '?'}: {error}", exc_info=error)
     await safe_respond(interaction, f"❌ Command error: `{type(error).__name__}: {error}`")
 
 @bot.event
 async def on_error(event: str, *args, **kwargs):
-    """Catch any unhandled bot-level errors and print them instead of crashing."""
-    import traceback
-    print(f"[on_error] Unhandled error in event '{event}':")
-    traceback.print_exc()
+    """Catch any unhandled bot-level errors and log them instead of crashing."""
+    logger.exception(f"[on_error] Unhandled error in event '{event}'")
 
 @bot.tree.interaction_check
 async def global_channel_check(interaction: discord.Interaction) -> bool:
@@ -107,10 +105,10 @@ async def on_ready():
     load_all()
     bot.add_view(PathwaySelectView())
     asyncio.create_task(auto_save_loop())
-    print(f"✅ {bot.user} — LOTM Bot loaded!")
+    logger.info(f"✅ {bot.user} — LOTM Bot loaded!")
     asyncio.create_task(start_http_server())
     try:
         synced = await bot.tree.sync()
-        print(f"🔄 Synced {len(synced)} slash commands")
-    except Exception as e:
-        print(f"Sync error: {e}")
+        logger.info(f"🔄 Synced {len(synced)} slash commands")
+    except Exception:
+        logger.exception("Sync error")

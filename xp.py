@@ -11,6 +11,7 @@ from config import DB_PATH, pathway_colors
 from database import get_user_data, update_user, get_setting
 from roles import assign_sequence_role, get_sequence_name
 from utils import log_event
+from logging_config import logger
 
 SEQ_ADVANCE_FLAVOUR = {
     8: "The first step on the path of a Beyonder. The ritual is complete.",
@@ -209,7 +210,7 @@ class XPSystem:
                     if member:
                         await assign_sequence_role(member, pathway, new_seq)
                 except Exception:
-                    pass
+                    logger.warning(f"[XP Bridge] Could not sync role for winner {winner.id}", exc_info=True)
                 await self.announce_sequence_advance(guild, winner.id, pathway, new_seq)
             # No announcement for regular XP gain — announcement channel is for promotions/demotions only
 
@@ -221,8 +222,8 @@ class XPSystem:
                 guild=guild
             )
 
-        except Exception as e:
-            print(f"[XP Bridge] Error awarding combat XP: {e}")
+        except Exception:
+            logger.exception("[XP Bridge] Error awarding combat XP")
 
     async def penalize_combat_xp(self, loser: discord.Member, loser_seq: int, guild: discord.Guild):
         """Deduct LOTM progression XP from the PvP loser."""
@@ -269,7 +270,7 @@ class XPSystem:
                     if member:
                         await assign_sequence_role(member, pathway, new_seq)
                 except Exception:
-                    pass
+                    logger.warning(f"[XP Bridge] Could not sync role for loser {loser.id}", exc_info=True)
                 try:
                     channel_id = await get_setting("announcement_channel")
                     if channel_id:
@@ -288,8 +289,8 @@ class XPSystem:
                             )
                             embed.set_footer(text="Lord of the Mysteries — Beyonder Tracker")
                             await channel.send(content=loser.mention, embed=embed)
-                except Exception as e:
-                    print(f"[XP Bridge] Demotion announcement error: {e}")
+                except Exception:
+                    logger.exception("[XP Bridge] Demotion announcement error")
             # No announcement for regular XP loss — announcement channel is for promotions/demotions only
 
             await log_event(
@@ -300,8 +301,8 @@ class XPSystem:
                 guild=guild
             )
 
-        except Exception as e:
-            print(f"[XP Bridge] Error penalizing combat XP: {e}")
+        except Exception:
+            logger.exception("[XP Bridge] Error penalizing combat XP")
 
 
 xp_system = XPSystem()

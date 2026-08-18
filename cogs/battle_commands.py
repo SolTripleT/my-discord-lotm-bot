@@ -7,6 +7,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from logging_config import logger
 from utils import check_blacklist
 from roles import get_seq_number
 from economy import get_pounds, add_pounds
@@ -144,7 +145,7 @@ class BattleCommands(commands.Cog):
             try:
                 await old_msg.delete()
             except Exception:
-                pass
+                logger.debug("[leave] Could not delete old battle message", exc_info=True)
 
         if is_pending:
             desc = (

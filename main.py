@@ -9,6 +9,7 @@ import os
 import asyncio
 
 from bot_instance import bot
+from logging_config import logger
 import events  # noqa: F401 — importing registers on_message/on_ready/etc. on `bot`
 
 COGS = [
@@ -23,13 +24,13 @@ COGS = [
 async def main():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
-        print("❌ ERROR: DISCORD_TOKEN not set in haha.env!")
+        logger.error("❌ DISCORD_TOKEN not set in haha.env!")
         return
 
     for extension in COGS:
         await bot.load_extension(extension)
 
-    print("Starting Combined LOTM Bot...")
+    logger.info("Starting Combined LOTM Bot...")
     await bot.start(token)
 
 

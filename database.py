@@ -11,6 +11,7 @@
 import aiosqlite
 
 from config import DB_PATH
+from logging_config import logger
 
 
 class Database:
@@ -44,20 +45,20 @@ class Database:
             # Migration: add guild_id column for per-server XP
             try:
                 await db.execute("ALTER TABLE users ADD COLUMN guild_id INTEGER NOT NULL DEFAULT 0")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[DB] guild_id column migration skipped (likely already applied): {e}")
 
             # Migration: add pray cooldown column
             try:
                 await db.execute("ALTER TABLE users ADD COLUMN last_pray TIMESTAMP")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[DB] last_pray column migration skipped (likely already applied): {e}")
 
             # Migration: add username column to logs (added in v5.20)
             try:
                 await db.execute("ALTER TABLE logs ADD COLUMN username TEXT")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[DB] logs.username column migration skipped (likely already applied): {e}")
 
             # BLACKLIST TABLE
             await db.execute("""CREATE TABLE IF NOT EXISTS blacklist (
@@ -75,7 +76,7 @@ class Database:
                     await db.execute("DELETE FROM users WHERE guild_id = 0")
                     await db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('migration_guild0_cleaned', '1')")
             except Exception:
-                pass
+                logger.exception("[DB] guild_id=0 cleanup migration failed")
 
             await db.commit()
 
@@ -153,7 +154,7 @@ class Database:
                  final_last_message, final_last_daily, final_last_pray)
             )
             await db.commit()
-            print(f"[DB] update_user: user={user_id} guild={guild_id} pathway={final_pathway} seq={final_sequence} xp={final_xp}")
+            logger.info(f"[DB] update_user: user={user_id} guild={guild_id} pathway={final_pathway} seq={final_sequence} xp={final_xp}")
 
 
     async def _init_extension_tables(self):

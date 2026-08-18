@@ -10,6 +10,7 @@ import aiosqlite
 
 from config import DB_PATH, pathways, pathway_colors
 from game_data import ROLE_MODIFIERS, ROLE_ABILITIES, ROLE_ABILITY_INFO, ABILITIES
+from logging_config import logger
 
 
 def get_sequence_name(pathway: str, seq_num: int) -> str:
@@ -21,22 +22,22 @@ def get_sequence_name(pathway: str, seq_num: int) -> str:
 async def get_or_create_role(guild: discord.Guild, name: str, pathway: str):
     role = discord.utils.get(guild.roles, name=name)
     if role:
-        print(f"[ROLE] Found existing role '{name}' in {guild.name}")
+        logger.info(f"[ROLE] Found existing role '{name}' in {guild.name}")
         return role
     color = pathway_colors.get(pathway, 0xf5c400)
-    print(f"[ROLE] Creating new role '{name}' in {guild.name}")
+    logger.info(f"[ROLE] Creating new role '{name}' in {guild.name}")
     try:
         r = await guild.create_role(
             name=name, color=discord.Color(color),
             mentionable=True, reason="LOTM Beyonder Sequence role"
         )
-        print(f"[ROLE] Created role '{name}' successfully")
+        logger.info(f"[ROLE] Created role '{name}' successfully")
         return r
     except discord.Forbidden:
-        print(f"[ROLE] ERROR: Forbidden to create role '{name}' in {guild.name} — bot needs Manage Roles")
+        logger.warning(f"[ROLE] Forbidden to create role '{name}' in {guild.name} — bot needs Manage Roles")
         return None
-    except Exception as e:
-        print(f"[ROLE] ERROR creating role: {e}")
+    except Exception:
+        logger.exception(f"[ROLE] Error creating role '{name}'")
         return None
 
 def is_lotm_sequence_role_name(role_name: str) -> bool:
@@ -48,7 +49,7 @@ async def remove_all_lotm_sequence_roles(member: discord.Member):
         try:
             await member.remove_roles(*to_remove)
         except discord.Forbidden:
-            pass
+            logger.warning(f"[ROLE] Forbidden — could not remove sequence roles from {member.id}")
 
 async def assign_sequence_role(member: discord.Member, pathway: str, seq_num: int):
     seq_name = get_sequence_name(pathway, seq_num)
@@ -57,10 +58,10 @@ async def assign_sequence_role(member: discord.Member, pathway: str, seq_num: in
     else:
         role_name = f"[{pathway}] Seq {seq_num} — {seq_name}"
 
-    print(f"[ROLE] Assigning role '{role_name}' to {member.id}")
+    logger.info(f"[ROLE] Assigning role '{role_name}' to {member.id}")
     role = await get_or_create_role(member.guild, role_name, pathway)
     if role is None:
-        print(f"[ROLE] ERROR: Could not get or create role '{role_name}' (Forbidden?)")
+        logger.warning(f"[ROLE] Could not get or create role '{role_name}' (Forbidden?)")
         return
 
     roles_to_remove = [
@@ -71,11 +72,11 @@ async def assign_sequence_role(member: discord.Member, pathway: str, seq_num: in
         if roles_to_remove:
             await member.remove_roles(*roles_to_remove)
         await member.add_roles(role)
-        print(f"[ROLE] Successfully assigned '{role_name}' to {member.id}")
+        logger.info(f"[ROLE] Successfully assigned '{role_name}' to {member.id}")
     except discord.Forbidden:
-        print(f"[ROLE] ERROR: Forbidden — bot lacks permission to assign roles to {member.id}")
-    except Exception as e:
-        print(f"[ROLE] ERROR: {e}")
+        logger.warning(f"[ROLE] Forbidden — bot lacks permission to assign roles to {member.id}")
+    except Exception:
+        logger.exception(f"[ROLE] Error assigning role '{role_name}' to {member.id}")
 
 
 # ====================== SEQUENCE / PATHWAY NAME PARSING ======================
@@ -86,7 +87,7 @@ def get_seq_number(role_name: str) -> int:
         if len(parts) > 1:
             return int(parts[1].split(" ")[0].split("—")[0].strip())
     except Exception:
-        pass
+        logger.debug(f"[ROLE] Could not parse sequence number from role name '{role_name}'", exc_info=True)
     return 9
 
 def get_pathway_name(role_name: str) -> str:
@@ -94,6 +95,7 @@ def get_pathway_name(role_name: str) -> str:
     try:
         return role_name.split("[")[1].split("]")[0]
     except Exception:
+        logger.debug(f"[ROLE] Could not parse pathway name from role name '{role_name}'", exc_info=True)
         return ""
 
 # ====================== ROLE / ABILITY LOOKUP ======================
@@ -116,7 +118,7 @@ def get_user_role(member: discord.Member):
                 if family_part in discord_name and f"seq {seq_part}" in discord_name:
                     return role_name
             except Exception:
-                pass
+                logger.debug(f"[ROLE] Fuzzy role match failed for '{role_name}'", exc_info=True)
     return None
 
 def get_pathway_family(role_name: str):
@@ -153,7 +155,7 @@ def get_all_user_roles(member: discord.Member) -> list:
                     seq_part = code_name.split("seq ")[1].split(" ")[0]
                     matched = family_part in discord_name and f"seq {seq_part}" in discord_name
                 except Exception:
-                    pass
+                    logger.debug(f"[ROLE] Fuzzy role match failed for '{role_name}'", exc_info=True)
             if matched:
                 owned.append(role_name)
 
@@ -207,6 +209,7 @@ async def get_all_roles_from_db_and_discord(member: discord.Member, guild_id: in
             ) as cursor:
                 row = await cursor.fetchone()
     except Exception:
+        logger.exception(f"[ROLE] DB lookup failed for user={member.id} guild={guild_id}")
         row = None
 
     if row and row[0]:

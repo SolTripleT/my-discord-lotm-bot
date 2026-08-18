@@ -16,6 +16,7 @@ import json
 import asyncio
 
 from config import BASE_DIR
+from logging_config import logger
 
 
 class PersistentStore:
@@ -40,19 +41,19 @@ class PersistentStore:
             try:
                 with open(path, "r") as f:
                     return json.load(f)
-            except Exception as e:
-                print(f"[DB] ⚠️ Failed to read {path} — starting with empty data for this file! Error: {e}")
+            except Exception:
+                logger.exception(f"[DB] Failed to read {path} — starting with empty data for this file!")
                 return {}
         else:
-            print(f"[DB] {path} does not exist yet — starting fresh for this file.")
+            logger.info(f"[DB] {path} does not exist yet — starting fresh for this file.")
         return {}
 
     def _save(self, path: str, data: dict):
         try:
             with open(path, "w") as f:
                 json.dump(data, f, indent=2)
-        except Exception as e:
-            print(f"[DB] Save error ({path}): {e}")
+        except Exception:
+            logger.exception(f"[DB] Save error ({path})")
 
     # ── bulk load ─────────────────────────────────────────
     def load_all(self):
@@ -100,8 +101,8 @@ class PersistentStore:
         self.bot_admin_whitelist.clear()
         self.bot_admin_whitelist.update(int(u) for u in raw_config.get("bot_admin_whitelist", []))
 
-        print(f"[DB] Data directory: {BASE_DIR}")
-        print(f"[DB] Loaded {len(self.player_economy)} economy entries, {len(self.daily_data)} daily entries.")
+        logger.info(f"[DB] Data directory: {BASE_DIR}")
+        logger.info(f"[DB] Loaded {len(self.player_economy)} economy entries, {len(self.daily_data)} daily entries.")
 
     async def auto_save_loop(self):
         """Periodically flush all JSON data to disk every 5 minutes as a safety net."""
@@ -112,8 +113,8 @@ class PersistentStore:
                 self.save_daily()
                 self.save_beg()
                 self.save_config()
-            except Exception as e:
-                print(f"[auto-save] Error: {e}")
+            except Exception:
+                logger.exception("[auto-save] Error")
             await asyncio.sleep(300)  # every 5 minutes
 
     # ── individual saves ──────────────────────────────────

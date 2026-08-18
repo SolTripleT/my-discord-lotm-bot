@@ -10,6 +10,7 @@ env/
 
 # Environment variables / secrets
 .env
+haha.env
 
 # IDEs
 .vscode/
@@ -21,3 +22,4 @@ Thumbs.db
 
 # Logs
 *.log
+logs/

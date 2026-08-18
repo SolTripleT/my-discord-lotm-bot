@@ -15,6 +15,7 @@ import random
 import discord
 
 from bot_instance import bot
+from logging_config import logger
 from persistence import log_channel, save_stats, save_economy
 from fighter import Fighter, seq_val, seq_dmg, get_or_create_stats
 from economy import add_pounds, get_economy, claim_bounty
@@ -672,8 +673,7 @@ class BattleManager:
 
     async def _view_on_error(self, interaction: discord.Interaction, error: Exception, item):
         """Shared on_error for all Views — prevents silent button death."""
-        import traceback
-        traceback.print_exc()
+        logger.error(f"[View error] {item!r}: {error}", exc_info=error)
         await self.safe_respond(interaction, f"❌ Something went wrong: `{type(error).__name__}`")
 
     async def send_and_replace(self, battle: dict, channel, embed, view=None):
@@ -686,13 +686,13 @@ class BattleManager:
             try:
                 await old_msg.delete()
             except Exception:
-                pass
+                logger.debug("[send_and_replace] Could not delete old battle message (likely already gone)", exc_info=True)
         try:
             new_msg = await channel.send(content=ping, embed=embed, view=view)
             battle["battle_message"] = new_msg
             return new_msg
-        except (discord.errors.HTTPException, discord.errors.NotFound) as e:
-            print(f"[send_and_replace] Failed to send: {e}")
+        except (discord.errors.HTTPException, discord.errors.NotFound):
+            logger.warning("[send_and_replace] Failed to send battle update", exc_info=True)
             return None
 
 
@@ -734,14 +734,14 @@ class BattleManager:
                         try:
                             await old_msg.delete()
                         except Exception:
-                            pass
+                            logger.debug("[inactivity_watcher] Could not delete old battle message", exc_info=True)
                     try:
                         await channel.send(
                             content=f"{c.user.mention} {o.user.mention}",
                             embed=embed
                         )
                     except Exception:
-                        pass
+                        logger.warning("[inactivity_watcher] Failed to send timeout notice", exc_info=True)
                 return
 
     # ── Battle log ────────────────────────────────────────────
@@ -801,8 +801,8 @@ class BattleManager:
         embed.set_footer(text=time.strftime("%d/%m/%Y %H:%M"))
         try:
             await ch.send(embed=embed)
-        except Exception as e:
-            print(f"[log] Failed to post battle log: {e}")
+        except Exception:
+            logger.warning("[log] Failed to post battle log", exc_info=True)
 
 
 

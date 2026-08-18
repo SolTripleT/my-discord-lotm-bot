@@ -7,6 +7,7 @@
 import random
 import discord
 
+from logging_config import logger
 from economy import add_pounds, get_pounds, remove_pounds
 from battle.manager import safe_respond
 
@@ -164,13 +165,14 @@ def bj_finish(user, game, guild_id=0):
 
 class BlackjackView(discord.ui.View):
     async def on_error(self, interaction: discord.Interaction, error: Exception, item) -> None:
+        logger.error(f"[Blackjack] {item!r}: {error}", exc_info=error)
         try:
             await interaction.response.send_message(f"❌ Error: `{error}`", ephemeral=True)
         except Exception:
             try:
                 await interaction.followup.send(f"❌ Error: `{error}`", ephemeral=True)
             except Exception:
-                pass
+                logger.debug("[Blackjack] Could not deliver error message to user", exc_info=True)
 
     def __init__(self, user_id):
         super().__init__(timeout=180)   # 3 minutes — plenty of time
@@ -197,7 +199,7 @@ class BlackjackView(discord.ui.View):
             try:
                 await interaction.edit_original_response(embed=embed, view=view)
             except Exception:
-                pass
+                logger.debug("[Blackjack] _safe_edit fallback failed", exc_info=True)
         except discord.errors.NotFound:
             pass
 

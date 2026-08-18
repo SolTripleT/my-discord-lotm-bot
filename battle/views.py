@@ -11,6 +11,7 @@ import asyncio
 import discord
 
 from bot_instance import bot
+from logging_config import logger
 from config import pathways, pathway_colors
 from database import get_user_data, update_user, is_blacklisted, db_remove_item
 from utils import log_event
@@ -115,7 +116,7 @@ async def handle_pathway_selection(interaction: discord.Interaction, pathway: st
     """Shared handler called when a member picks a pathway from the select menu."""
     guild_id = interaction.guild_id
     guild = interaction.guild or bot.get_guild(guild_id)
-    print(f"[DEBUG] pathway selection: user={interaction.user.id} guild_id={guild_id} pathway={pathway}")
+    logger.debug(f"[pathway selection] user={interaction.user.id} guild_id={guild_id} pathway={pathway}")
 
     if await is_blacklisted(interaction.user.id, guild_id):
         await interaction.response.send_message("🚫 You are blacklisted from using this bot.", ephemeral=True)
@@ -130,23 +131,23 @@ async def handle_pathway_selection(interaction: discord.Interaction, pathway: st
 
     # Verify the save actually worked
     verify = await get_user_data(interaction.user.id, guild_id)
-    print(f"[DEBUG] verify after save: {verify}")
+    logger.debug(f"[pathway selection] verify after save: {verify}")
 
     member = None
     if guild:
         try:
             member = guild.get_member(interaction.user.id) or await guild.fetch_member(interaction.user.id)
-            print(f"[ROLE] member fetched: {member}")
-        except Exception as e:
-            print(f"[ROLE] Could not fetch member {interaction.user.id}: {e}")
+            logger.debug(f"[ROLE] member fetched: {member}")
+        except Exception:
+            logger.warning(f"[ROLE] Could not fetch member {interaction.user.id}", exc_info=True)
     else:
-        print(f"[ROLE] guild is None for guild_id={guild_id}")
+        logger.debug(f"[ROLE] guild is None for guild_id={guild_id}")
 
     if member:
         await remove_all_lotm_sequence_roles(member)
         await assign_sequence_role(member, pathway, 9)
     else:
-        print(f"[ROLE] Skipping role assignment — member is None")
+        logger.debug("[ROLE] Skipping role assignment — member is None")
 
     name = get_sequence_name(pathway, 9)
 
@@ -432,7 +433,7 @@ class SurrenderConfirmView(discord.ui.View):
             old_msg = battle.get("battle_message")
             if old_msg:
                 try: await old_msg.delete()
-                except: pass
+                except: logger.debug("[views] Could not delete old battle message", exc_info=True)
             await channel.send(
                 content=f"{attacker.user.mention} {defender.user.mention}",
                 embed=embed
@@ -487,7 +488,7 @@ class FleeConfirmView(discord.ui.View):
             old_msg = battle.get("battle_message")
             if old_msg:
                 try: await old_msg.delete()
-                except: pass
+                except: logger.debug("[views] Could not delete old battle message", exc_info=True)
             await channel.send(
                 content=f"{attacker.user.mention} {defender.user.mention}",
                 embed=embed

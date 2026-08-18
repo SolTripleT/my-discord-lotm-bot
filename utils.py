@@ -11,6 +11,7 @@ from datetime import datetime
 from config import OWNER_ID, DB_PATH
 from database import get_setting, is_blacklisted
 from persistence import bot_admin_whitelist
+from logging_config import logger
 
 
 # ====================== LOGGING SYSTEM ======================
@@ -63,8 +64,8 @@ async def log_event(
                 embed.set_footer(text="LOTM Beyonder Bot • Logging System")
                 try:
                     await channel.send(embed=embed)
-                except:
-                    pass
+                except Exception:
+                    logger.debug(f"[log_event] Could not post '{event_type}' embed to log channel", exc_info=True)
 
 
 def parse_iso(ts: str):

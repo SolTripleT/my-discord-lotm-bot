@@ -18,6 +18,7 @@ import random
 import discord
 
 from bot_instance import bot
+from logging_config import logger
 from fighter import Fighter, seq_dmg, seq_gap_check, seq_val, get_or_create_stats
 from roles import get_ability_info, get_pathway_name, get_seq_number
 from persistence import save_stats
@@ -187,12 +188,11 @@ async def process_action(
     try:
         await _process_action_inner(interaction, action, ability_key, ritual_choice)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"[process_action] Unhandled error resolving action={action!r} ability_key={ability_key!r}")
         try:
             await interaction.followup.send(f"❌ An error occurred: `{type(e).__name__}: {e}`", ephemeral=True)
         except Exception:
-            pass
+            logger.debug("[process_action] Could not deliver error message to user", exc_info=True)
 
 async def _process_action_inner(
     interaction: discord.Interaction,
@@ -1227,7 +1227,7 @@ async def _process_action_inner(
                     old_msg = battle.get("battle_message")
                     if old_msg:
                         try: await old_msg.delete()
-                        except: pass
+                        except: logger.debug("[actions] Could not delete old battle message", exc_info=True)
                     return
                 else:
                     msg += f"🎩 The escape trick failed — **{attacker.user.display_name}** couldn't vanish!"; color = 0x95A5A6
@@ -1523,7 +1523,7 @@ async def _process_action_inner(
                 old_msg = battle.get("battle_message")
                 if old_msg:
                     try: await old_msg.delete()
-                    except: pass
+                    except: logger.debug("[actions] Could not delete old battle message", exc_info=True)
                 return
             embed = make_battle_embed(msg, battle, battle["turn"].display_name, color)
             await send_and_replace(battle, interaction.channel, embed, view=_make_battle_view(battle))
@@ -3227,7 +3227,7 @@ async def _process_action_inner(
         old_msg = battle.get("battle_message")
         if old_msg:
             try: await old_msg.delete()
-            except: pass
+            except: logger.debug("[actions] Could not delete old battle message", exc_info=True)
         return
 
     # Append any divination dodge message generated during ability damage
@@ -3295,7 +3295,7 @@ async def _process_action_inner(
         old_msg = battle.get("battle_message")
         if old_msg:
             try: await old_msg.delete()
-            except: pass
+            except: logger.debug("[actions] Could not delete old battle message", exc_info=True)
         return
 
     swap_turn(battle)
